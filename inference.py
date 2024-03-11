@@ -35,13 +35,26 @@ def extract_frames_from_video(video_path,save_dir):
     return (int(frame_width),int(frame_height))
 
 if __name__ == '__main__':
-    start_process = default_timer()
-
     # load config
     opt = DINetInferenceOptions().parse_args()
     if not os.path.exists(opt.source_video_path):
         raise ('wrong video path : {}'.format(opt.source_video_path))
     
+    ############################################## load pretrained model weight ##############################################
+    print('loading pretrained model from: {}'.format(opt.pretrained_clip_DINet_path))
+    model = DINet(opt.source_channel, opt.ref_channel, opt.audio_channel).cuda()
+    if not os.path.exists(opt.pretrained_clip_DINet_path):
+        raise ('wrong path of pretrained model weight: {}'.format(opt.pretrained_clip_DINet_path))
+    state_dict = torch.load(opt.pretrained_clip_DINet_path)['state_dict']['net_g']
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        name = k[7:]  # remove module.
+        new_state_dict[name] = v
+    model.load_state_dict(new_state_dict)
+    model.eval()
+
+
+    start_process = default_timer()
     ############################################## extract frames from source video ##############################################
     print('extracting frames from video: {}'.format(opt.source_video_path))
     start_time = time.time()
@@ -119,19 +132,6 @@ if __name__ == '__main__':
         ref_img_list.append(ref_img_crop)
     ref_video_frame = np.concatenate(ref_img_list, 2)
     ref_img_tensor = torch.from_numpy(ref_video_frame).permute(2, 0, 1).unsqueeze(0).float().cuda()
-
-    ############################################## load pretrained model weight ##############################################
-    print('loading pretrained model from: {}'.format(opt.pretrained_clip_DINet_path))
-    model = DINet(opt.source_channel, opt.ref_channel, opt.audio_channel).cuda()
-    if not os.path.exists(opt.pretrained_clip_DINet_path):
-        raise ('wrong path of pretrained model weight: {}'.format(opt.pretrained_clip_DINet_path))
-    state_dict = torch.load(opt.pretrained_clip_DINet_path)['state_dict']['net_g']
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        name = k[7:]  # remove module.
-        new_state_dict[name] = v
-    model.load_state_dict(new_state_dict)
-    model.eval()
     
     ############################################## inference frame by frame ##############################################
     if not os.path.exists(opt.res_video_dir):
