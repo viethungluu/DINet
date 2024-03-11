@@ -148,6 +148,9 @@ if __name__ == '__main__':
         crop_frame_tensor = torch.from_numpy(crop_frame_data).float().cuda().permute(2, 0, 1).unsqueeze(0)
         deepspeech_tensor = torch.from_numpy(ds_feature_padding[clip_end_index - 5:clip_end_index, :]).permute(1, 0).unsqueeze(0).float().cuda()
         with torch.no_grad():
+            if clip_end_index == 5:
+                print(crop_frame_tensor.shape, ref_img_tensor.shape, deepspeech_tensor.shape)
+            
             pre_frame = model(crop_frame_tensor, ref_img_tensor, deepspeech_tensor)
             pre_frame = pre_frame.squeeze(0).permute(1, 2, 0).detach().cpu().numpy() * 255
         videowriter_face.write(pre_frame[:, :, ::-1].copy().astype(np.uint8))
