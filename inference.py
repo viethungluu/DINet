@@ -31,12 +31,14 @@ if __name__ == '__main__':
     opt = DINetInferenceOptions().parse_args()
     if not os.path.exists(opt.source_video_path):
         raise ('wrong video path : {}'.format(opt.source_video_path))
+    
     ############################################## extract frames from source video ##############################################
     print('extracting frames from video: {}'.format(opt.source_video_path))
     video_frame_dir = opt.source_video_path.replace('.mp4', '')
     if not os.path.exists(video_frame_dir):
         os.mkdir(video_frame_dir)
     video_size = extract_frames_from_video(opt.source_video_path,video_frame_dir)
+    
     ############################################## extract deep speech feature ##############################################
     print('extracting deepspeech feature from : {}'.format(opt.driving_audio_path))
     if not os.path.exists(opt.deepspeech_model_path):
@@ -47,11 +49,13 @@ if __name__ == '__main__':
     ds_feature = DSModel.compute_audio_feature(opt.driving_audio_path)
     res_frame_length = ds_feature.shape[0]
     ds_feature_padding = np.pad(ds_feature, ((2, 2), (0, 0)), mode='edge')
+    
     ############################################## load facial landmark ##############################################
     print('loading facial landmarks from : {}'.format(opt.source_openface_landmark_path))
     if not os.path.exists(opt.source_openface_landmark_path):
         raise ('wrong facial landmark path :{}'.format(opt.source_openface_landmark_path))
     video_landmark_data = load_landmark_openface(opt.source_openface_landmark_path).astype(np.int)
+    
     ############################################## align frame with driving audio ##############################################
     print('aligning frames with driving audio')
     video_frame_path_list = glob.glob(os.path.join(video_frame_dir, '*.jpg'))
@@ -111,6 +115,7 @@ if __name__ == '__main__':
         new_state_dict[name] = v
     model.load_state_dict(new_state_dict)
     model.eval()
+    
     ############################################## inference frame by frame ##############################################
     if not os.path.exists(opt.res_video_dir):
         os.mkdir(opt.res_video_dir)
