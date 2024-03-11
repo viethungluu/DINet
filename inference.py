@@ -11,6 +11,14 @@ import torch
 import subprocess
 import random
 from collections import OrderedDict
+import time
+from timeit import default_timer
+
+# Set up logging configuration
+import logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def extract_frames_from_video(video_path,save_dir):
     videoCapture = cv2.VideoCapture(video_path)
@@ -27,6 +35,8 @@ def extract_frames_from_video(video_path,save_dir):
     return (int(frame_width),int(frame_height))
 
 if __name__ == '__main__':
+    start_process = default_timer()
+
     # load config
     opt = DINetInferenceOptions().parse_args()
     if not os.path.exists(opt.source_video_path):
@@ -34,13 +44,18 @@ if __name__ == '__main__':
     
     ############################################## extract frames from source video ##############################################
     print('extracting frames from video: {}'.format(opt.source_video_path))
+    start_time = time.time()
     video_frame_dir = opt.source_video_path.replace('.mp4', '')
     if not os.path.exists(video_frame_dir):
         os.mkdir(video_frame_dir)
     video_size = extract_frames_from_video(opt.source_video_path,video_frame_dir)
-    
+    end_time = time.time()
+    logging.info(f"Frames extraction took {end_time - start_time:.2f} sec.")
+
     ############################################## extract deep speech feature ##############################################
     print('extracting deepspeech feature from : {}'.format(opt.driving_audio_path))
+    start_time = time.time()
+
     if not os.path.exists(opt.deepspeech_model_path):
         raise ('pls download pretrained model of deepspeech')
     DSModel = DeepSpeech(opt.deepspeech_model_path)
@@ -49,6 +64,8 @@ if __name__ == '__main__':
     ds_feature = DSModel.compute_audio_feature(opt.driving_audio_path)
     res_frame_length = ds_feature.shape[0]
     ds_feature_padding = np.pad(ds_feature, ((2, 2), (0, 0)), mode='edge')
+    end_time = time.time()
+    logging.info(f"Audio features extraction took {end_time - start_time:.2f} sec.")
     
     ############################################## load facial landmark ##############################################
     print('loading facial landmarks from : {}'.format(opt.source_openface_landmark_path))
@@ -172,6 +189,8 @@ if __name__ == '__main__':
         opt.driving_audio_path,
         video_add_audio_path)
     subprocess.call(cmd, shell=True)
+    end_process = default_timer()
+    logging.info(f"Video generation took {end_process - start_process:.2f} sec.")
 
 
 
